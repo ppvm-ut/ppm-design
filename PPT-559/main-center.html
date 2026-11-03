@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Сплэш и вход ППМ · по центру</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&display=swap">
+<style>
+  /* Layout: one phone on a quiet stage, a slim control bar above it; the phone carries the start-screen palettes (Light/Dark). */
+  :root {
+    --bg: #eef1f5; --fg: #0a0a0f; --muted: #5d6471; --panel: #ffffff; --line: rgba(10,10,15,0.10); --accent: #0365e3;
+    --font: "Onest", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --speed: 2;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0e1116; --fg: #f2f4f7; --muted: #9aa3b1; --panel: #171a21; --line: rgba(255,255,255,0.10); --accent: #5ea2ff; color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg: #0e1116; --fg: #f2f4f7; --muted: #9aa3b1; --panel: #171a21; --line: rgba(255,255,255,0.10); --accent: #5ea2ff; color-scheme: dark; }
+
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); -webkit-font-smoothing: antialiased;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px;
+    display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+  .seg { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .seg button, .btn { appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 999px; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .seg.load button { padding: 6px 11px; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .btn { border: 1px solid var(--line); background: var(--panel); color: var(--fg); padding: 8px 14px; }
+  .seg button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .scaler { width: 375px; max-width: 100%; }
+  .device { position: relative; width: 375px; height: 812px; border-radius: 44px; overflow: hidden; box-shadow: 0 30px 80px rgba(2,27,74,0.25), 0 0 0 1px var(--line); transform-origin: top left; }
+
+  /* ---- screen palettes (from the Figma start screen) ---- */
+  /* one splash gradient for both themes; only the layer under the content, the text and the buttons follow the theme */
+  .screen { position: absolute; inset: 0; font-family: var(--font); background: var(--layer);
+    --g-top: #2f8cff; --g-mid: #0a56c9; --g-bot: #0a2a6e; --b1: #ffffff; --b2: #04091c; --b3: #ffffff; }
+  .screen.light { --layer: #ffffff; --t1: #0a0a0f; --t2: #464a52; --t3: #5e636c; --tert: rgba(0,0,0,0.06); --tid-bg: #333333; --tid-fg: #ffffff; }
+  .screen.dark  { --layer: #1c1d22; --t1: #ffffff; --t2: #cbd0d7; --t3: #a5abb4; --tert: rgba(255,255,255,0.08); --tid-bg: #ffffff; --tid-fg: #333333; }
+
+  /* ---- visual: full screen while loading, shrinks to the 560px fade of the start screen when ready ---- */
+  @property --fs { syntax: "<length>"; inherits: false; initial-value: 812px; }
+  @property --fe { syntax: "<length>"; inherits: false; initial-value: 813px; }
+  .visual { position: absolute; left: 0; top: 0; width: 375px; height: 812px; overflow: hidden; --fs: 812px; --fe: 813px;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 var(--fs), transparent var(--fe));
+            mask-image: linear-gradient(to bottom, #000 0, #000 var(--fs), transparent var(--fe));
+    transition: --fs .9s cubic-bezier(.4,0,.2,1), --fe .9s cubic-bezier(.4,0,.2,1); }
+  .screen.ready .visual { --fs: 308px; --fe: 560px; }
+  .base { position: absolute; inset: 0; background: linear-gradient(165deg, var(--g-top) 0%, var(--g-mid) 33%, var(--g-bot) 69%, var(--g-bot) 100%); }
+  .blob { position: absolute; border-radius: 50%; filter: blur(42px); will-change: transform; }
+  .blob.one   { width: 380px; height: 380px; left: 140px; top: -200px; background: radial-gradient(circle at 50% 50%, var(--b1) 0%, color-mix(in srgb, var(--b1) 40%, transparent) 35%, transparent 68%); opacity: .7; animation: drift1 calc(14s / var(--speed)) ease-in-out infinite; }
+  .blob.two   { width: 440px; height: 440px; left: -220px; top: 100px; background: radial-gradient(circle at 50% 50%, var(--b2) 0%, color-mix(in srgb, var(--b2) 45%, transparent) 38%, transparent 70%); opacity: .6; animation: drift2 calc(18s / var(--speed)) ease-in-out infinite; }
+  .blob.three { width: 300px; height: 300px; left: 60px; top: 300px; background: radial-gradient(circle at 50% 50%, var(--b3) 0%, color-mix(in srgb, var(--b3) 35%, transparent) 35%, transparent 68%); opacity: .55; animation: drift3 calc(22s / var(--speed)) ease-in-out infinite; }
+  .sheen { position: absolute; left: -50%; top: -50%; width: 200%; height: 200%; background: conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,0) 0deg, rgba(255,255,255,.10) 60deg, rgba(255,255,255,0) 120deg, rgba(255,255,255,.06) 240deg, rgba(255,255,255,0) 360deg); mix-blend-mode: soft-light; animation: spin calc(40s / var(--speed)) linear infinite; }
+  @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-140px,160px) scale(1.25); } }
+  @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(220px,-60px) scale(1.15); } }
+  @keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-120px,-180px) scale(.9); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .blob, .sheen { animation-duration: 90s; } }
+
+  /* ---- logo: centred while loading (top 342), lifted to the start-screen spot (top 216) when ready; moved by script ---- */
+  .logo { position: absolute; left: 124px; top: 342px; width: 128px; height: 128px; will-change: transform; }
+  .logo svg { display: block; width: 128px; height: 128px; overflow: visible; filter: drop-shadow(0 18px 24px rgba(2,27,74,.28)); }
+
+  /* ---- start-screen elements: hidden while loading, rise in when ready ---- */
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .6s cubic-bezier(.2,.8,.2,1); pointer-events: none; }
+  .screen.ready .reveal { opacity: 1; transform: none; pointer-events: auto; }
+  .screen.ready .r1 { transition-delay: .30s; }
+  .screen.ready .r2 { transition-delay: .42s; }
+  .screen.ready .r3 { transition-delay: .50s; }
+  .screen.ready .r4 { transition-delay: .58s; }
+  .no-tr, .no-tr * { transition: none !important; }
+
+  .a-text { position: absolute; left: 16px; top: 348px; width: 343px; display: flex; flex-direction: column; gap: 0; text-align: center; }
+  .title { margin: 0; font-size: 32px; line-height: 40px; font-weight: 600; letter-spacing: -0.015em; color: var(--t1); }
+  /* typewriter: letters are shown one by one by the script, a caret runs ahead of them */
+  .tag { margin: 0; font-size: 18px; line-height: 24px; font-weight: 400; color: var(--t1); }
+  .tag .w { display: inline-block; white-space: nowrap; }
+  .tag .ch { display: inline-block; white-space: pre; visibility: hidden; }
+  .tag .ch.on { visibility: visible; }
+  .tag .caret { display: inline-block; width: 2px; height: 20px; margin: 0 -3px 0 1px; vertical-align: -3px; background: var(--t1); border-radius: 1px; }
+  .tag .caret.idle { animation: caret 1s steps(1, end) infinite; }
+  @keyframes caret { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+  .tag .w, .tag .ch.sp { vertical-align: top; }
+  .tag:not(.m-type) .ch { visibility: visible; opacity: 0; }
+  .tag.m-decode .ch { text-align: center; }
+  /* dissolve: title, then tagline fade in while the logo is still moving up */
+  .a-text.m-fade { opacity: 1; transform: none; transition: none; }
+  .a-text.m-fade .title, .a-text.m-fade .tag { opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .6s cubic-bezier(.2,.8,.2,1); }  /* same motion as the buttons */
+  .screen.ready .a-text.m-fade .title { opacity: 1; transform: none; transition-delay: .30s; }
+  .screen.ready .a-text.m-fade .tag { opacity: 1; transform: none; transition-delay: .38s; }
+  .tag.m-fade .ch { opacity: 1; }
+  .a-text.m-dec .tag { opacity: 1; transform: none; transition: none; }  /* decoder draws the tagline itself */
+  .desc { position: absolute; left: 16px; top: 588px; width: 343px; margin: 0; text-align: center; font-size: 16px; line-height: 20px; color: var(--t2); }
+  .action { position: absolute; left: 16px; width: 343px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 18px; line-height: 24px; font-weight: 500; user-select: none; }
+  .action.email { top: 640px; background: var(--tert); color: var(--t1); }
+  .action.tid { top: 704px; background: var(--tid-bg); color: var(--tid-fg); }
+  .action.tid svg { display: block; width: 37px; height: 20px; }
+  .disclaimer { position: absolute; left: 16px; top: 772px; width: 343px; margin: 0; text-align: center; font-size: 10px; line-height: 12px; letter-spacing: 0.01em; color: var(--t3); }
+  .disclaimer u { color: var(--t1); text-decoration: underline; }
+</style>
+
+<div class="bar">
+  <div class="seg mode" role="group" aria-label="Анимация строчки">
+    <button type="button" data-mode="fade" aria-pressed="true">Растворение</button>
+    <button type="button" data-mode="decode" aria-pressed="false">Декодер</button>
+  </div>
+  <button type="button" class="btn" id="replay">Ещё раз</button>
+</div>
+
+<div class="scaler"><div class="device">
+  <div class="screen dark" id="screen">
+    <div class="visual"><div class="base"></div><div class="blob three"></div><div class="blob two"></div><div class="blob one"></div><div class="sheen"></div></div>
+
+    <div class="logo" id="logo">
+      <svg viewBox="0 0 128 128" role="img" aria-label="Плати по всему миру">
+        <g id="rig">
+          <g id="body">
+            <path id="s0" fill="#fff" stroke="#fff" stroke-linejoin="round" stroke-linecap="round"/>
+            <path id="s1" fill="#fff" stroke="#fff" stroke-linejoin="round" stroke-linecap="round"/>
+            <path id="s2" fill="#fff" stroke="#fff" stroke-linejoin="round" stroke-linecap="round"/>
+            <path id="s3" fill="#fff" stroke="#fff" stroke-linejoin="round" stroke-linecap="round"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <div class="a-text reveal r1"><h2 class="title">Плати по всему миру</h2><p class="tag" aria-label="Наша работа — ваша свобода платить"><span class="w"><span class="ch" style="--i:0">Н</span><span class="ch" style="--i:1">а</span><span class="ch" style="--i:2">ш</span><span class="ch" style="--i:3">а</span></span><span class="ch sp" style="--i:4"> </span><span class="w"><span class="ch" style="--i:5">р</span><span class="ch" style="--i:6">а</span><span class="ch" style="--i:7">б</span><span class="ch" style="--i:8">о</span><span class="ch" style="--i:9">т</span><span class="ch" style="--i:10">а</span></span><span class="ch sp" style="--i:11"> </span><span class="w"><span class="ch" style="--i:12">—</span></span><span class="ch sp" style="--i:13"> </span><span class="w"><span class="ch" style="--i:14">в</span><span class="ch" style="--i:15">а</span><span class="ch" style="--i:16">ш</span><span class="ch" style="--i:17">а</span></span><span class="ch sp" style="--i:18"> </span><span class="w"><span class="ch" style="--i:19">с</span><span class="ch" style="--i:20">в</span><span class="ch" style="--i:21">о</span><span class="ch" style="--i:22">б</span><span class="ch" style="--i:23">о</span><span class="ch" style="--i:24">д</span><span class="ch" style="--i:25">а</span></span><span class="ch sp" style="--i:26"> </span><span class="w"><span class="ch" style="--i:27">п</span><span class="ch" style="--i:28">л</span><span class="ch" style="--i:29">а</span><span class="ch" style="--i:30">т</span><span class="ch" style="--i:31">и</span><span class="ch" style="--i:32">т</span><span class="ch" style="--i:33">ь</span></span></p></div>
+    <p class="desc reveal r2">Войдите или зарегистрируйтесь — это<br>займёт пару минут, если аккаунта ещё нет</p>
+    <div class="action email reveal r2">Войти по e-mail</div>
+    <div class="action tid reveal r3">Войти с T‑ID <svg viewBox="0 0 37 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9.99805 0.5H27.002C32.2474 0.500092 36.5 4.75327 36.5 10C36.5 15.2467 32.2474 19.4999 27.002 19.5H9.99805C4.75249 19.4999 0.5 15.2467 0.5 10C0.5 4.75327 4.75249 0.500092 9.99805 0.5Z" fill="#303030" stroke="white"/><path d="M5.80029 5.14136H16.5715V10.5593C16.5715 11.9484 15.8299 13.2322 14.6281 13.9267L11.1859 15.9144L7.74369 13.9267C6.54026 13.2322 5.80029 11.9484 5.80029 10.5593V5.14136Z" fill="#FFDD2D"/><path fill-rule="evenodd" clip-rule="evenodd" d="M8.75548 7.99341V9.67788C8.98642 9.41704 9.40432 9.24105 9.8835 9.24105H10.4035V11.2005C10.4035 11.7222 10.2621 12.1779 10.0516 12.4293H12.3155C12.1065 12.1779 11.9652 11.7222 11.9652 11.2021V9.24262H12.4852C12.9643 9.24262 13.3838 9.41861 13.6132 9.67946V7.99498H8.75391L8.75548 7.99341Z" fill="#333333"/><path d="M22.7207 13.3973V7.03027H20.7129V13.3973H22.7207Z" fill="white"/><path d="M27.5596 13.3973C30.1 13.3973 31.3569 12.046 31.3569 10.2138C31.3569 8.38162 30.0984 7.03027 27.7733 7.03027H24.1897V13.3973H27.5612H27.5596ZM27.357 8.55447C28.7348 8.55447 29.3098 9.17044 29.3098 10.2138C29.3098 11.177 28.7363 11.9124 27.357 11.9124H26.1268V8.55447H27.357Z" fill="white"/></svg></div>
+    <p class="disclaimer reveal r4">Авторизуясь, я соглашаюсь с <u>Условиями использования</u><br>и <u>Политикой конфиденциальности</u></p>
+  </div>
+</div></div>
+
+<script>
+(function () {
+  // Logo segments (start-screen logo, 128×128), in reveal order: top cap, big band, bottom band, thin tail
+  var D = [
+    "M30.1798 9.5345C46.0963 3.70153e-06 61.3335 0.043665 63.9938 0C66.5376 0.156224 78.9102 1.44337 72.6437 6.48522C69.3266 9.13908 62.8572 11.9962 53.0684 16.3457C24.9226 28.8596 4.68758 38.7202 0.944336 52.0162C4.36284 34.1916 14.8739 18.9521 29.8512 9.73778Z",
+    "M0 69.1924C0.840608 54.0237 18.093 43.4956 56.4333 25.6682C70.0752 19.312 78.275 14.2672 84.6439 9.61206C92.7238 3.70564 115.362 15.8663 114.541 36.4325C114.334 41.6335 112.54 48.2687 62.7101 72.9403C30.8275 88.7349 19.5836 97.6353 19.7309 107.027C19.7406 107.631 19.6285 108.456 19.45 108.991C19.2028 109.727 18.4534 108.946 16.7146 107.318C7.28852 97.123 1.15462 83.8726 0 69.1924Z",
+    "M43.1693 124.292C20.8942 115.971 26.8696 106.066 65.2547 87.7513C91.6783 75.1462 106.195 67.1604 117.316 55.8958C127.964 46.5927 128.468 64.082 127.807 70.9529C125.318 96.6061 116.327 102.586 75.5907 119.074C63.7291 123.868 61.531 124.895 60.1526 126.523C59.8825 126.814 59.9502 127.236 60.2179 127.326C61.1492 127.75 61.4886 127.906 63.9875 127.996C60.1321 127.884 52.0922 127.638 43.1693 124.292Z",
+    "M110.832 107.608C100.891 115.105 81.0257 122.131 71.2534 125.322C64.7704 127.418 64.7168 127.442 63.9971 127.955C64.0614 127.955 64.1648 128 64.256 128C65.2765 127.977 66.631 127.931 67.6516 127.91C70.031 127.776 72.3612 127.53 74.6583 127.15C78.0568 126.594 81.3641 125.791 84.5578 124.743C87.7438 123.671 90.8107 122.376 93.7631 120.883C96.711 119.345 99.5357 117.603 102.17 115.664C104.501 113.834 107.492 111.267 109.658 109.283C110.801 108.121 111.887 106.985 112.943 105.758L110.832 107.608Z"
+  ];
+  var segs = D.map(function (d, i) { var s = document.getElementById('s' + i); s.setAttribute('d', d); s.setAttribute('stroke-width', '0'); return s; });
+  var body = document.getElementById('body'), rig = document.getElementById('rig');
+  var logo = document.getElementById('logo'), screen = document.getElementById('screen');
+
+  // timings, s: the 4 segments appear one by one (no circle), sliding in along the normal to the cuts
+  var DELAY = 0.15, SEG = 0.5, STAGGER = 0.13;
+  var REV_S = DELAY, REV_E = REV_S + SEG + 3 * STAGGER;          // logo fully assembled at REV_E
+  var N = [0.469, 0.883];                                        // normal to the cuts (cuts run at about -28°)
+  var FROM = [-18, -8, 8, 16];                                   // start offset of each segment along the normal, px
+  var PERIOD = 4.5, AMP = 8;                                     // floating, same as the start screen
+  var LIFT = 0.8, LIFT_DY = 180 - 342;                           // logo goes up to its start-screen spot
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) AMP = 0;
+
+  var clamp = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; };
+  var easeOut = function (p) { return 1 - Math.pow(1 - p, 3); };
+  var easeInOut = function (p) { return p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; };
+
+  var loadLimit = 2, t = 0, last = null, readyAt = null;
+
+  function frame(ts) {
+    if (last !== null) t += Math.min(0.1, (ts - last) / 1000);
+    last = ts;
+
+    // logo assembles segment by segment: top cap, big band, bottom band, tail
+    segs.forEach(function (s, i) {
+      var p = clamp((t - REV_S - i * STAGGER) / SEG), e = easeOut(p);
+      var d = FROM[i] * (1 - e), k = 0.92 + 0.08 * e;
+      s.setAttribute('opacity', Math.min(1, p * 1.6).toFixed(3));
+      s.setAttribute('transform', 'translate(' + (N[0] * d).toFixed(2) + ' ' + (N[1] * d).toFixed(2) + ') translate(64 64) scale(' + k.toFixed(4) + ') translate(-64 -64)');
+    });
+
+    // floating only, from the moment the logo is revealed
+    var fy = t >= REV_E ? -AMP * (1 - Math.cos(2 * Math.PI * (t - REV_E) / PERIOD)) / 2 : 0;
+
+    // loading done (never before the logo is fully revealed)
+    if (readyAt === null && loadLimit > 0 && t >= Math.max(loadLimit, REV_E)) { readyAt = t; screen.classList.add('ready'); }
+    var ly = readyAt !== null ? LIFT_DY * easeInOut(clamp((t - readyAt) / LIFT)) : 0;
+    animTag(readyAt === null ? -1 : t - readyAt);
+
+    logo.style.transform = 'translateY(' + (ly + fy).toFixed(2) + 'px)';
+    requestAnimationFrame(frame);
+  }
+
+  // ---- typewriter for the tagline ----
+  var chars = Array.prototype.slice.call(document.querySelectorAll('.tag .ch'));
+  var caret = document.createElement('span'); caret.className = 'caret'; caret.setAttribute('aria-hidden', 'true');
+  var TYPE_START = 0.75, CARET_IN = 0.45, CARET_OFF = 1.6;   // s from the moment loading is done
+  var TT = [], acc = TYPE_START;                              // time each letter is typed, with a human rhythm
+  chars.forEach(function (c, i) {
+    var ch = c.textContent, prev = i ? chars[i - 1].textContent : '';
+    acc += 0.058 + 0.018 * Math.sin(i * 2.7);                 // slightly uneven key presses
+    if (/\s/.test(prev)) acc += 0.035;                        // small pause after a space
+    if (prev === '—') acc += 0.14;                       // longer pause after the dash
+    TT.push(acc);
+  });
+  var shown = -2;
+  function placeCaret(n) {
+    if (n === 0) chars[0].parentNode.insertBefore(caret, chars[0]);
+    else { var c = chars[n - 1]; c.parentNode.insertBefore(caret, c.nextSibling); }
+  }
+  function typeTo(el) {
+    var n = 0; while (n < TT.length && TT[n] <= el) n++;
+    var caretOn = el >= CARET_IN && el < TT[TT.length - 1] + CARET_OFF;
+    var key = el < 0 ? -1 : n * 10 + (caretOn ? 1 : 0) + (n === TT.length ? 2 : 0);
+    if (key === shown) return; shown = key;
+    chars.forEach(function (c, i) { c.classList.toggle('on', i < n); });
+    if (caretOn) { placeCaret(n); caret.classList.toggle('idle', n === 0 || n === TT.length); }
+    else if (caret.parentNode) caret.parentNode.removeChild(caret);
+  }
+
+  // ---- other tagline variants: wave, beam, decode ----
+  var tagEl = document.querySelector('.tag'), mode = 'fade';
+  var ORIG = chars.map(function (c) { return c.textContent; }), BASE = chars.map(function (c) { return c.getAttribute('style') || ''; });
+  var GLYPHS = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ0123456789$€₽#%&*@';
+  var S = 0.6;                                                 // s after loading is done
+  function resetTag() {
+    chars.forEach(function (c, i) { c.setAttribute('style', BASE[i]); c.textContent = ORIG[i]; c.classList.remove('on'); });
+    if (caret.parentNode) caret.parentNode.removeChild(caret);
+    shown = -2;
+  }
+  function animTag(el) {
+    if (mode === 'type') return typeTo(el);
+    if (mode === 'fade') return;                               // the whole block fades in via CSS
+    chars.forEach(function (c, i) {
+      if (el < 0) { c.style.opacity = '0'; return; }
+      if (mode === 'wave') {                                   // letters rise and develop out of a soft vertical gradient
+        var p = clamp((el - S - i * 0.05) / 0.9), e = easeOut(p);
+        var top = (100 - 100 * e).toFixed(1), mask = 'linear-gradient(to top, transparent ' + (top * 0.6).toFixed(1) + '%, #000 ' + (top * 1 + 40 * (1 - e)).toFixed(1) + '%)';
+        c.style.opacity = (Math.min(1, p * 1.4)).toFixed(3);
+        c.style.transform = 'translateY(' + ((1 - e) * 55).toFixed(1) + '%)';
+        c.style.webkitMaskImage = p < 1 ? mask : 'none'; c.style.maskImage = p < 1 ? mask : 'none';
+      } else if (mode === 'beam') {                            // the line glimmers dimly, then a light front lights letters up
+        var dim = 0.16 * clamp((el - S + 0.5) / 0.5), q = clamp((el - S - i * 0.055) / 0.9), g = Math.sin(Math.PI * q);
+        c.style.opacity = (dim + (1 - dim) * easeOut(q)).toFixed(3);
+        c.style.textShadow = g > 0.01 ? '0 0 ' + (12 * g).toFixed(1) + 'px rgba(140,190,255,' + (0.9 * g).toFixed(2) + ')' : 'none';
+      } else if (mode === 'decode') {                          // random symbols settle into the real letters left to right
+        var SD = 0.38;                                        // right after the title starts (same slot as the tagline in the dissolve)
+        var start = SD + i * 0.022, settle = SD + 0.3 + i * 0.035;
+        if (el < start) { c.style.opacity = '0'; return; }
+        c.style.opacity = '1';
+        var txt = ORIG[i];
+        if (el < settle && !/\s/.test(txt)) txt = GLYPHS.charAt(Math.floor(el * 18 + i * 7.3) % GLYPHS.length);
+        if (c.textContent !== txt) c.textContent = txt;
+        c.style.color = txt === ORIG[i] ? '' : 'rgba(255,255,255,0.5)';   // scrambled symbols: #ffffff at 50%
+      }
+    });
+  }
+  var modeBtns = Array.prototype.slice.call(document.querySelectorAll('[data-mode]'));
+  function setMode(m) {
+    mode = m; tagEl.className = 'tag m-' + m;
+    var at = document.querySelector('.a-text'); at.classList.toggle('m-fade', m === 'fade' || m === 'decode'); at.classList.toggle('m-dec', m === 'decode');
+    modeBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === m)); });
+    resetTag();
+    if (m === 'decode') chars.forEach(function (c) { c.style.width = c.offsetWidth + 'px'; });  // fixed widths: no jitter
+    replay();
+  }
+  modeBtns.forEach(function (b) { b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); }); });
+  tagEl.classList.add('m-fade'); document.querySelector('.a-text').classList.add('m-fade');
+
+  function replay() {
+    screen.classList.add('no-tr'); screen.classList.remove('ready');
+    void screen.offsetWidth; screen.classList.remove('no-tr');
+    t = 0; last = null; readyAt = null;
+  }
+
+  // controls
+  var themeBtns = Array.prototype.slice.call(document.querySelectorAll('.bar button[data-th]'));
+  function setTheme(th) {
+    screen.classList.remove('light', 'dark'); screen.classList.add(th);
+    themeBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-th') === th)); });
+  }
+  themeBtns.forEach(function (b) { b.addEventListener('click', function () { setTheme(b.getAttribute('data-th')); }); });
+  var loadBtns = Array.prototype.slice.call(document.querySelectorAll('[data-load]'));
+  loadBtns.forEach(function (b) { b.addEventListener('click', function () {
+    loadLimit = +b.getAttribute('data-load');
+    loadBtns.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+    replay();
+  }); });
+  document.getElementById('replay').addEventListener('click', replay);
+  setTheme('dark');
+
+  function fit() {
+    var s = Math.min(1, Math.min(document.body.clientWidth - 32, 375) / 375);
+    var sc = document.querySelector('.scaler'), d = sc.firstElementChild;
+    d.style.transform = 'scale(' + s + ')'; sc.style.height = Math.round(812 * s) + 'px'; sc.style.width = Math.round(375 * s) + 'px';
+  }
+  window.addEventListener('resize', fit); fit();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</html>

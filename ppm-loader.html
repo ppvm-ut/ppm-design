@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Лоадер ППМ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: phone preview on the left, motion controls + timing spec on the right; stacks on narrow screens */
+:root{
+  --bg:#F2F5F9; --surface:#FFFFFF; --fg:#0F1B2D; --muted:#5B6B82; --line:#DCE3EC; --accent:#2B7AF1; --accent-soft:#E3EEFE;
+  --ph-circle:#C9D6E8; --ph-reveal:#2B7AF1; --ph-wobble:#8DB9F8; --ph-asm:#5C97F4;
+  --font-ui:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --brand-a:#2B7AF1; --brand-b:#67C8FD;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B111A; --surface:#131B27; --fg:#E6EDF6; --muted:#8D9BB0; --line:#243043; --accent:#5AA2FF; --accent-soft:#18263A;
+  --ph-circle:#33445C; --ph-reveal:#5AA2FF; --ph-wobble:#2F5E9E; --ph-asm:#4580D6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B111A; --surface:#131B27; --fg:#E6EDF6; --muted:#8D9BB0; --line:#243043; --accent:#5AA2FF; --accent-soft:#18263A;
+  --ph-circle:#33445C; --ph-reveal:#5AA2FF; --ph-wobble:#2F5E9E; --ph-asm:#4580D6; color-scheme:dark}
+
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 40px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:minmax(0,360px);justify-content:center;gap:40px;align-items:start}
+.wrap.open{grid-template-columns:minmax(0,360px) minmax(0,1fr)}
+@media (max-width:820px){.wrap.open{grid-template-columns:minmax(0,1fr);gap:28px}.wrap.open .stage{justify-self:center;width:100%;max-width:360px}}
+
+/* phone */
+.stage{position:sticky;top:calc(env(safe-area-inset-top,0px) + 20px);display:grid;gap:22px;justify-items:center;--pw:max(240px,min(100%,calc((100dvh - 300px) * .4618)))}
+@media (max-width:820px){.stage{position:static}}
+.phone{width:var(--pw);position:relative;aspect-ratio:375/812;max-width:100%;border-radius:38px;overflow:hidden;
+  background:linear-gradient(159.4deg,var(--brand-a) 15.6%,var(--brand-b) 111%);
+  box-shadow:0 0 0 7px #0E141D,0 0 0 8px var(--line),0 24px 60px -20px rgba(16,40,80,.45);container-type:inline-size}
+.status{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:3.2cqw 4.3cqw;color:#fff;font-size:3.5cqw;font-family:var(--font-ui)}
+.status i{display:inline-block;width:6cqw;height:2.6cqw;border:1px solid #fff;border-radius:3px;position:relative;top:.3cqw}
+.status i::after{content:"";position:absolute;inset:1px 1px 1px 1px;background:#fff;border-radius:1px}
+.mark{position:absolute;left:50%;top:50.06%;width:34.13%;transform:translate(-50%,-50%);transition:opacity .2s ease,transform .2s ease}
+.mark svg{display:block;width:100%;height:auto;overflow:visible}
+.mark.out{opacity:0;transform:translate(-50%,-50%) scale(.85)}
+.ready{position:absolute;inset:auto 0 16% 0;display:grid;justify-items:center;gap:4cqw;text-align:center;color:#fff;font-size:4.2cqw;opacity:0;pointer-events:none;transition:opacity .25s ease .1s}
+.ready.on{opacity:1;pointer-events:auto}
+.again{border:0;border-radius:999px;background:rgba(255,255,255,.22);color:#fff;padding:2.6cqw 5.4cqw;font-size:4cqw;font-weight:500;cursor:pointer}
+.again:hover{background:rgba(255,255,255,.32)}
+.ready.dark{color:#0F1B2D}
+.ready.dark .again{background:#E8EFFA;color:#1D5FD0}
+.ready.dark .again:hover{background:#DCE7F8}
+.ready b{display:block;font-size:6.4cqw;font-weight:600;margin-bottom:1cqw}
+.under{margin-top:14px;display:flex;justify-content:space-between;align-items:baseline;gap:12px;color:var(--muted);font-size:13px}
+.toolbar{width:min(100%,max(var(--pw),360px));display:grid;gap:8px}
+.tb-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.tb-row{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.tabs{flex:1 1 200px}
+.tb-gap{margin-top:8px}
+.seg.variants{display:flex}
+.seg.variants button{flex:1;font-family:var(--font-ui);font-size:14px;padding:8px 6px;white-space:nowrap}
+.seg.tabs button{flex:1;padding:8px 0;min-width:34px;white-space:nowrap}
+.btn[aria-expanded="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.phase-now{color:var(--fg);font-weight:500}
+
+/* panel */
+.panel{display:grid;gap:28px;min-width:0}
+h1{font-size:28px;line-height:1.15;font-weight:700;letter-spacing:-.01em;margin:0 0 8px;text-wrap:balance}
+.lead{color:var(--muted);margin:0;max-width:60ch}
+h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 12px}
+.card{min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+
+.transport{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button,select{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn svg{width:14px;height:14px}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:8px 12px;cursor:pointer;font-family:var(--font-mono);font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.timeline{margin-top:16px}
+.bands{display:flex;height:26px;border-radius:7px;overflow:hidden;font-size:11px;font-weight:500}
+.bands div{display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;color:#fff;min-width:0}
+.bands .circle{background:var(--ph-circle);color:var(--fg)}
+.bands .reveal{background:var(--ph-reveal)}
+.bands .wobble{background:var(--ph-wobble);color:#0F1B2D}
+.bands .asm{background:var(--ph-asm)}
+.bands .hold{background:var(--ph-circle);color:var(--fg)}
+.scrub{position:relative;margin-top:6px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.ticks{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
+
+.row{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin-top:16px}
+.row label{display:flex;align-items:center;gap:8px;font-size:14px}
+select{border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:var(--surface)}
+
+.params{display:grid;gap:14px}
+.param{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center}
+.param label{font-size:14px}
+.param output{font-family:var(--font-mono);font-size:13px;color:var(--accent);font-variant-numeric:tabular-nums}
+.param input{grid-column:1 / -1}
+.param small{grid-column:1 / -1;color:var(--muted);font-size:12px}
+
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:460px}
+th,td{text-align:left;padding:9px 10px 9px 0;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:500}
+td.mono,td:first-child{white-space:nowrap}
+.dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:8px;vertical-align:1px}
+.notes{margin:14px 0 0;padding-left:18px;color:var(--muted);font-size:14px;display:grid;gap:6px}
+.notes b{color:var(--fg);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="phone" id="phone">
+      <div class="status"><span>09:30</span><i aria-hidden="true"></i></div>
+      <div class="mark" id="mark">
+        <svg viewBox="0 0 128 125" role="img" aria-label="Логотип Плати по миру">
+          <defs>
+            <clipPath id="clip">
+              <ellipse cx="64" cy="62.5" rx="64" ry="62.5"/>
+              <path id="cp0"/><path id="cp1"/><path id="cp2"/><path id="cp3"/>
+            </clipPath>
+            <path id="p0"/><path id="p1"/><path id="p2"/><path id="p3"/>
+          </defs>
+          <g id="rig">
+            <g id="body" clip-path="url(#clip)">
+              <path class="s" id="s0" fill="#fff" stroke="#fff" stroke-linejoin="round" stroke-linecap="round"/>
+              <path class="s" id="s1" fill="#fff" stroke="#fff" stroke-linejoin="round" stroke-linecap="round"/>
+              <path class="s" id="s2" fill="#fff" stroke="#fff" stroke-linejoin="round" stroke-linecap="round"/>
+              <path class="s" id="s3" fill="#fff" stroke="#fff" stroke-linejoin="round" stroke-linecap="round"/>
+              <g id="layers" display="none"></g>
+            </g>
+            <ellipse id="disc" cx="64" cy="62.5" rx="64" ry="62.5" fill="#fff" display="none"/>
+            <ellipse id="guide" cx="64" cy="62.5" rx="64" ry="62.5" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".6" stroke-dasharray="2 2" visibility="hidden"/>
+          </g>
+        </svg>
+      </div>
+      <div class="ready" id="ready"><div><b>Приложение готово</b><span id="readyText"></span></div><button class="again" id="again" type="button">Ещё раз</button></div>
+    </div>
+    <div class="toolbar">
+      <div class="tb-label" id="vLabel">Вариант</div>
+      <div class="seg variants" role="group" aria-labelledby="vLabel">
+        <button type="button" data-variant="seg" aria-pressed="true">По сегментам</button>
+        <button type="button" data-variant="diag" aria-pressed="false">По диагонали</button>
+        <button type="button" data-variant="fill" aria-pressed="false" title="По сегментам, а в конце загрузки круг заливает весь экран">С заливкой</button>
+      </div>
+      <div class="tb-label tb-gap" id="tbLabel">Время загрузки, с</div>
+      <div class="tb-row">
+        <div class="seg tabs" role="group" aria-labelledby="tbLabel">
+          <button type="button" data-load="0.5" aria-pressed="false">0,5</button>
+          <button type="button" data-load="1" aria-pressed="false">1</button>
+          <button type="button" data-load="2" aria-pressed="true">2</button>
+          <button type="button" data-load="5" aria-pressed="false">5</button>
+          <button type="button" data-load="0" aria-pressed="false" title="Загрузка не заканчивается, анимация идёт по кругу">∞</button>
+        </div>
+        <button class="btn" id="settingsBtn" type="button" aria-expanded="false" aria-controls="panel">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4h7M12 4h2M2 12h2M7 12h7"/><circle cx="10.5" cy="4" r="1.6"/><circle cx="5.5" cy="12" r="1.6"/></svg>Настройки
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel" hidden>
+    <header>
+      <h1>Лоадер при открытии приложения</h1>
+      <p class="lead">Круг с первого экрана по сегментам раскрывается в логотип, логотип покачивается 3 секунды, затем собирается обратно в круг, и цикл повторяется. Логотип полностью проявляется к <span id="revealEnd"></span> с, так что его видно даже при загрузке короче секунды.</p>
+    </header>
+
+    <section class="card" aria-labelledby="h-play">
+      <h2 id="h-play">Просмотр</h2>
+      <div class="transport">
+        <button class="btn primary" id="play" type="button"></button>
+        <button class="btn" id="restart" type="button">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2.5 8a5.5 5.5 0 1 0 1.7-4"/><path d="M2.5 2v3.5H6"/></svg>С начала
+        </button>
+        <div class="seg speeds" role="group" aria-label="Скорость">
+          <button type="button" data-speed="1" aria-pressed="true">1×</button>
+          <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
+          <button type="button" data-speed="0.25" aria-pressed="false">0.25×</button>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="bands" id="bands"></div>
+        <div class="scrub"><input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="Позиция в цикле"></div>
+        <div class="ticks mono" id="ticks"></div>
+      </div>
+      <div class="under">
+        <span>Фаза: <span class="phase-now" id="phaseNow">Круг</span></span>
+        <span class="mono" id="clock">0,00 / 0,00 с</span>
+      </div>
+      <div class="row">
+        <label for="guideToggle"><input type="checkbox" id="guideToggle"> Контур исходного круга</label>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="h-params">
+      <h2 id="h-params">Параметры</h2>
+      <div class="params">
+        <div class="param">
+          <label for="pSeg">Раскрытие одного сегмента</label><output id="oSeg" for="pSeg"></output>
+          <input type="range" id="pSeg" min="0.1" max="0.6" step="0.02" value="0.16">
+          <small>4 сегмента идут с шагом 80 мс. Полное раскрытие = значение + 0,24 с.</small>
+        </div>
+        <div class="param">
+          <label for="pWob">Покачивание</label><output id="oWob" for="pWob"></output>
+          <input type="range" id="pWob" min="1.5" max="5" step="0.1" value="3">
+        </div>
+        <div class="param">
+          <label for="pAmp">Амплитуда покачивания</label><output id="oAmp" for="pAmp"></output>
+          <input type="range" id="pAmp" min="0" max="10" step="0.5" value="4">
+          <small>Смещение вверх и вниз от центра, в pt при размере логотипа 128×125.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="h-spec">
+      <h2 id="h-spec">Тайминги цикла</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Фаза</th><th>Время</th><th>Что происходит</th><th>Кривая</th></tr></thead>
+        <tbody id="spec"></tbody>
+      </table></div>
+      <ul class="notes">
+        <li><b>Как устроено.</b> Каждый из 4 сегментов логотипа рисуется с белой обводкой 22 pt (в координатах логотипа 128×125). При такой толщине сегменты полностью перекрывают круг, а маска по эллипсу держит ровный край. Обводка сегмента уходит в 0, и между сегментами раскрывается прорезь.</li>
+        <li><b>Порядок.</b> Раскрытие идёт сверху вниз: верхний сегмент, большая полоса, нижняя полоса, тонкий хвост. Сборка идёт в обратном порядке.</li>
+        <li><b>Покачивание.</b> Логотип смещается сначала вниз, потом вверх по синусоиде с периодом 3 с, без поворота, плюс сегменты чуть расходятся по нормали к прорезям (до 1,2 pt). Движение начинается сразу после раскрытия, без разгона. Перед сборкой амплитуда гаснет за 0,35 с, чтобы фаза стыковалась без рывка.</li>
+        <li><b>Вариант «По диагонали».</b> Прорези открываются волной, которая идёт из правого верхнего угла в левый нижний: за фронтом волны прорезь постепенно расширяется до полной ширины. Сборка идёт той же волной в том же направлении. Технически это 15 копий сегментов с обводкой от 22 до 0,5 pt, каждая под своей маской с мягким краем; маски сдвигаются по диагонали с отставанием друг от друга.</li>
+        <li><b>Вариант «С заливкой».</b> Цикл такой же, как «По сегментам». Отличается конец загрузки: лоадер не исчезает, а собирается в круг, и круг заливает весь экран. Дальше на белом фоне появляется приложение. Пока загрузка идёт бесконечно, вариант выглядит как «По сегментам».</li>
+        <li><b>Для Lottie.</b> Слой на сегмент, анимируется Stroke Width (22 → 0) и маска-эллипс 128×125; покачивание делается через Position Y родительского нуля.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Logo segments from Figma node 4002:1931, order of reveal: top cap, big band, bottom band, thin tail
+  const D = [
+    "M30.1627 9.30917C46.0725 0 61.3067 0.0429895 63.9662 0C66.5119 0.152417 78.8783 1.40693 72.6125 6.33118C69.2971 8.92227 62.831 11.7127 53.0454 15.9608C24.9065 28.1777 4.67927 37.8073 0.935547 50.7863C4.35322 33.3833 14.8616 18.505 29.8366 9.50848Z",
+    "M0 67.5606C0.840671 52.7488 18.0862 42.4705 56.4153 25.0636C70.0546 18.8575 78.2532 13.9333 84.6209 9.38814C92.6977 3.61974 115.329 15.4926 114.508 35.5727C114.3 40.6531 112.505 47.1289 62.6929 71.2187C30.8181 86.6402 19.579 95.3318 19.7243 104.5C19.7318 105.149 19.6377 105.795 19.4454 106.415C19.1979 107.138 18.4476 106.376 16.7113 104.786C7.2832 94.8316 1.15494 81.8918 0 67.5606Z",
+    "M43.1556 121.36C20.8897 113.235 26.8607 103.566 65.2331 85.6822C91.6514 73.3756 106.167 65.5788 117.284 54.5814C127.93 45.495 128.429 62.5735 127.773 69.2799C125.282 94.331 116.294 100.166 75.5686 116.267C63.7128 120.945 61.5129 121.95 60.134 123.536C59.8668 123.822 59.9337 124.236 60.2009 124.322C61.1319 124.736 61.4697 124.889 63.972 124.979C60.1145 124.869 52.0769 124.627 43.1556 121.36Z",
+    "M110.789 105.067C100.85 112.386 80.9926 119.249 71.2226 122.364C64.7407 124.408 64.6898 124.435 63.9709 124.932C64.0337 124.932 64.1358 124.979 64.2301 124.979L67.6242 124.889C73.3679 124.587 79.0481 123.548 84.524 121.797C87.7061 120.747 90.7741 119.491 93.7283 118.03C96.6744 116.525 99.499 114.825 102.135 112.934C104.699 110.941 107.195 108.863 109.619 106.704C110.758 105.571 111.846 104.457 112.903 103.261L110.789 105.067Z"
+  ];
+  const segs = D.map((d,i)=>{const s=document.getElementById('s'+i); s.setAttribute('d',d); document.getElementById('cp'+i).setAttribute('d',d); return s;});
+  D.forEach((d,i)=>document.getElementById('p'+i).setAttribute('d',d));
+  const body = document.getElementById('body'), rig = document.getElementById('rig');
+
+  // ---- diagonal variant: stacked stroke layers behind a moving diagonal front ----
+  const NS='http://www.w3.org/2000/svg', defs=document.querySelector('#mark defs'), layersG=document.getElementById('layers');
+  const LAYER_R=[11,8,6,5,4.3,3.7,3.2,2.7,2.3,1.9,1.5,1.15,0.8,0.5,0.25]; // stroke radius per layer, thick to thin
+  const LAYER_Q=LAYER_R.map((_,k)=>(k+0.5)/LAYER_R.length); // where in the taper each layer ends
+  const DL=Math.hypot(128,125), DX=-128/DL, DY=125/DL;   // direction: top-right -> bottom-left
+  const DANG=Math.atan2(125,-128)*180/Math.PI;
+  const S_MID=((64-128)*DX+62.5*DY)/DL, S_HALF=Math.hypot(64*DX,62.5*DY)/DL;
+  const S0=S_MID-S_HALF, S1=S_MID+S_HALF, TAPER=0.32;   // s = 0 at top-right corner, 1 at bottom-left
+  const maskRects=LAYER_R.map((r,k)=>{
+    const m=document.createElementNS(NS,'mask'); m.id='mk'+k;
+    m.setAttribute('maskUnits','userSpaceOnUse'); ['x','y','width','height'].forEach((a,i)=>m.setAttribute(a,[-60,-60,250,250][i]));
+    // soft-edged band along the diagonal: a gradient in the rotated frame, x = s * DL
+    const lg=document.createElementNS(NS,'linearGradient'); lg.id='gk'+k;
+    lg.setAttribute('gradientUnits','userSpaceOnUse'); lg.setAttribute('y1','0'); lg.setAttribute('y2','0');
+    const stops=[0,1,1,0].map(op=>{const st=document.createElementNS(NS,'stop'); st.setAttribute('stop-color','#fff'); st.setAttribute('stop-opacity',op); lg.appendChild(st); return st;});
+    defs.appendChild(lg);
+    const rc=document.createElementNS(NS,'rect'); rc.setAttribute('fill',`url(#gk${k})`);
+    rc.setAttribute('x','-400'); rc.setAttribute('width','800'); rc.setAttribute('y','-300'); rc.setAttribute('height','600');
+    rc.setAttribute('transform',`translate(128 0) rotate(${DANG.toFixed(3)})`);
+    rc._lg=lg; rc._stops=stops;
+    m.appendChild(rc); defs.appendChild(m);
+    const g=document.createElementNS(NS,'g');
+    g.setAttribute('mask',`url(#mk${k})`); g.setAttribute('fill','#fff'); g.setAttribute('stroke','#fff');
+    g.setAttribute('stroke-width',String(2*r)); g.setAttribute('stroke-linejoin','round');
+    for(let i=0;i<4;i++){ const u=document.createElementNS(NS,'use'); u.setAttribute('href','#p'+i); g.appendChild(u); }
+    layersG.appendChild(g);
+    return rc;
+  });
+  const FEATHER=TAPER*DL/LAYER_R.length*1.4;
+  const setBand=(rc,from,to)=>{ // keep the part of the logo where from <= s <= to, with soft edges
+    const a=Math.max(from,-1.5)*DL, b=Math.min(to,2.5)*DL;
+    if(b<=a){ rc.setAttribute('visibility','hidden'); return; }
+    rc.setAttribute('visibility','visible');
+    const x1=a-FEATHER/2, x2=b+FEATHER/2, len=x2-x1, q=Math.min(0.5,FEATHER/len);
+    rc._lg.setAttribute('x1',x1.toFixed(2)); rc._lg.setAttribute('x2',x2.toFixed(2));
+    [0,q,1-q,1].forEach((o,i)=>rc._stops[i].setAttribute('offset',o.toFixed(4)));
+  };
+  let variant='seg';
+
+  const P = {hold0:0.12, seg:0.16, stagger:0.08, wob:3.0, amp:4, period:3.0, hold1:0.15, R:11, drift:1.2};
+  const N = [0.469, 0.883];            // normal to the cuts (cuts run at about -28°)
+  const DRIFT_K = [-1, -0.4, 0.4, 0.9]; // how far each segment breathes along the normal
+
+  const clamp=(x)=>x<0?0:x>1?1:x;
+  const easeOut=(p)=>1-Math.pow(1-p,3);
+  const easeInOut=(p)=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+  const smooth=(x)=>{x=clamp(x);return x*x*(3-2*x);};
+
+  function phases(){
+    const rev=P.seg+3*P.stagger, asm=P.seg+3*P.stagger;
+    const a=P.hold0, b=a+rev, c=b+P.wob, d=c+asm, e=d+P.hold1;
+    return [
+      {k:'circle',name:'Круг',s:0,e:a},
+      {k:'reveal',name:'Раскрытие',s:a,e:b},
+      {k:'wobble',name:'Покачивание',s:b,e:c},
+      {k:'asm',name:'Сборка',s:c,e:d},
+      {k:'hold',name:'Круг',s:d,e:e}
+    ];
+  }
+
+  function compute(t){
+    const ph=phases();
+    const r=[P.R,P.R,P.R,P.R], off=[0,0,0,0];
+    let dy=0, sc=1, clip=true, name='Круг';
+    const [,rev,wob,asm]=ph;
+    let diag=false;
+    if(variant==='diag' && t>=rev.s && t<rev.e){
+      name=rev.name; diag=true;
+      const f=S0+(S1-S0+TAPER)*easeOut(clamp((t-rev.s)/(rev.e-rev.s)));
+      maskRects.forEach((rc,k)=>setBand(rc,f-LAYER_Q[k]*TAPER,9));
+      r.fill(0);
+      sc=1-0.035*Math.sin(Math.PI*(t-rev.s)/(rev.e-rev.s));
+    } else if(variant==='diag' && t>=asm.s && t<asm.e){
+      name=asm.name; diag=true;
+      const g=S0+(S1-S0+TAPER)*easeInOut(clamp((t-asm.s)/(asm.e-asm.s)));
+      maskRects.forEach((rc,k)=>setBand(rc,-9,g-(1-LAYER_Q[k])*TAPER));
+      r.fill(0);
+      sc=1-0.03*Math.sin(Math.PI*(t-asm.s)/(asm.e-asm.s));
+    } else if(t>=rev.s && t<rev.e){
+      name=rev.name;
+      for(let i=0;i<4;i++){ r[i]=P.R*(1-easeOut(clamp((t-rev.s-i*P.stagger)/P.seg))); }
+      sc=1-0.035*Math.sin(Math.PI*(t-rev.s)/(rev.e-rev.s));
+    } else if(t>=wob.s && t<wob.e){
+      name=wob.name; clip=false;
+      const u=t-wob.s, env=smooth((P.wob-u)/0.35); // starts moving immediately, fades only before assembly
+      const w=Math.sin(2*Math.PI*u/P.period);
+      dy=P.amp*w*env;            // first down, then up
+      for(let i=0;i<4;i++){ r[i]=0; off[i]=P.drift*DRIFT_K[i]*Math.sin(2*Math.PI*u/P.period-0.5-i*0.35)*env; }
+    } else if(t>=asm.s && t<asm.e){
+      name=asm.name;
+      for(let j=0;j<4;j++){ const i=3-j; r[i]=P.R*easeInOut(clamp((t-asm.s-j*P.stagger)/P.seg)); }
+      sc=1-0.03*Math.sin(Math.PI*(t-asm.s)/(asm.e-asm.s));
+    }
+    return {r,off,dy,sc,clip,diag,name};
+  }
+  const disc=document.getElementById('disc');
+  function apply(st){
+    if(st.clip) body.setAttribute('clip-path','url(#clip)'); else body.removeAttribute('clip-path');
+    layersG.setAttribute('display',st.diag?'inline':'none');
+    body.setAttribute('display',st.disc?'none':'inline');
+    disc.setAttribute('display',st.disc?'inline':'none');
+    segs.forEach((s,i)=>{
+      s.setAttribute('stroke-width',(2*st.r[i]).toFixed(3));
+      s.setAttribute('transform',`translate(${(N[0]*st.off[i]).toFixed(3)} ${(N[1]*st.off[i]).toFixed(3)})`);
+    });
+    rig.setAttribute('transform',`translate(0 ${st.dy.toFixed(3)}) translate(64 62.5) scale(${st.sc.toFixed(4)}) translate(-64 -62.5)`);
+    return st.name;
+  }
+  const render=(t)=>apply(compute(t));
+
+  // ---- "fill" variant exit: collapse to the circle, then the circle floods the screen ----
+  const COLLAPSE=0.22, EXPAND=0.5, FILL_SCALE=7.6; // 7.6 × 62.5 pt covers the farthest corner of a 375×812 screen
+  let snap=null, exitAt=0, collapseDur=0;
+  function exitState(u){
+    if(u<collapseDur){
+      const p=easeInOut(u/collapseDur);
+      return {r:snap.r.map(x=>x+(P.R-x)*p), off:snap.off.map(x=>x*(1-p)), dy:snap.dy*(1-p), sc:snap.sc+(1-snap.sc)*p,
+              clip:true, diag:false, name:'Сборка в круг'};
+    }
+    const q=clamp((u-collapseDur)/EXPAND);
+    return {r:[P.R,P.R,P.R,P.R], off:[0,0,0,0], dy:0, sc:1+(FILL_SCALE-1)*easeInOut(q), clip:true, diag:false, disc:true,
+            name:q<1?'Заливка экрана':'Экран залит'};
+  }
+
+  // ---- playback ----
+  const $=(id)=>document.getElementById(id);
+  const playBtn=$('play'), scrub=$('scrub'), clock=$('clock'), phaseNow=$('phaseNow'), mark=$('mark'), ready=$('ready'), readyText=$('readyText');
+  let playing=true, speed=1, elapsed=0, last=null, done=false, loadLimit=2;
+  const total=()=>phases().at(-1).e;
+  const ICON_PAUSE='<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>Пауза';
+  const ICON_PLAY='<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11a.5.5 0 0 0 .76.43l9-5.5a.5.5 0 0 0 0-.86l-9-5.5A.5.5 0 0 0 4 2.5z"/></svg>Играть';
+  const fmt=(x)=>x.toFixed(2).replace('.',',');
+
+  function setPlaying(v){ playing=v; playBtn.innerHTML=v?ICON_PAUSE:ICON_PLAY; last=null; }
+  function resetExit(){ done=false; mark.classList.remove('out'); ready.classList.remove('on','dark'); }
+  function restart(){ elapsed=0; resetExit(); setPlaying(true); }
+
+  function frame(ts){
+    if(playing){
+      if(last!==null) elapsed+=Math.min(0.1,(ts-last)/1000)*speed;
+      last=ts;
+      const lim=loadLimit;
+      if(lim>0 && !done && elapsed>=lim){
+        done=true; readyText.textContent='загрузка заняла '+fmt(lim)+' с';
+        if(variant==='fill'){
+          snap=compute(lim%total()); exitAt=lim;
+          const open=Math.max(...snap.r.map(x=>P.R-x))/P.R + Math.abs(snap.dy)/4;
+          collapseDur=open>0.02?COLLAPSE:0;
+        } else { mark.classList.add('out'); ready.classList.add('on'); }
+      }
+    }
+    const T=total(), t=elapsed%T;
+    if(done && variant==='fill'){
+      const u=elapsed-exitAt;
+      phaseNow.textContent=apply(exitState(u));
+      if(u>=collapseDur+EXPAND && !ready.classList.contains('on')) ready.classList.add('on','dark');
+    } else phaseNow.textContent=done?'Лоадер скрыт':render(t);
+    clock.textContent=fmt(t)+' / '+fmt(T)+' с';
+    if(document.activeElement!==scrub) scrub.value=Math.round(t/T*1000);
+    requestAnimationFrame(frame);
+  }
+
+  playBtn.addEventListener('click',()=>{ if(done) restart(); else setPlaying(!playing); });
+  $('restart').addEventListener('click',restart);
+  document.querySelectorAll('.speeds button').forEach(b=>b.addEventListener('click',()=>{
+    speed=+b.dataset.speed;
+    document.querySelectorAll('.speeds button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
+  }));
+  document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+    loadLimit=+b.dataset.load;
+    document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
+    restart();
+  }));
+  $('again').addEventListener('click',restart);
+  document.querySelectorAll('.variants button').forEach(b=>b.addEventListener('click',()=>{
+    variant=b.dataset.variant;
+    document.querySelectorAll('.variants button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
+    if(variant==='fill' && loadLimit===0){ // the fill only shows when loading ends
+      loadLimit=2;
+      document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.load==='2'?'true':'false'));
+    }
+    paintTimeline(); restart();
+  }));
+  const panel=$('panel'), wrap=document.querySelector('.wrap'), sBtn=$('settingsBtn');
+  sBtn.addEventListener('click',()=>{
+    const open=panel.hidden;
+    panel.hidden=!open; wrap.classList.toggle('open',open);
+    sBtn.setAttribute('aria-expanded',open?'true':'false');
+  });
+  scrub.addEventListener('input',()=>{
+    if(done) resetExit();
+    setPlaying(false); elapsed=scrub.value/1000*total();
+  });
+  $('guideToggle').addEventListener('change',e=>$('guide').setAttribute('visibility',e.target.checked?'visible':'hidden'));
+
+  // ---- params + spec ----
+  function bind(id,out,key,f){
+    const el=$(id), o=$(out);
+    const upd=()=>{P[key]=+el.value; o.textContent=f(+el.value); paintTimeline();};
+    el.addEventListener('input',upd); upd();
+  }
+  function paintTimeline(){
+    const ph=phases(), T=total();
+    $('bands').innerHTML=ph.map(p=>`<div class="${p.k}" style="flex:${(p.e-p.s).toFixed(3)}" title="${p.name}">${(p.e-p.s)/T>0.12?p.name:''}</div>`).join('');
+    $('revealEnd').textContent=fmt(ph[1].e);
+    $('ticks').innerHTML=`<span>0</span><span>${fmt(ph[1].e)} с — логотип</span><span>${fmt(T)} с</span>`;
+    const col={circle:'var(--ph-circle)',reveal:'var(--ph-reveal)',wobble:'var(--ph-wobble)',asm:'var(--ph-asm)',hold:'var(--ph-circle)'};
+    const what={
+      circle:'Сплошной круг, как на первом экране.',
+      reveal: variant==='diag'
+        ? `Прорези открываются волной из правого верхнего угла в левый нижний за ${Math.round((P.seg+3*P.stagger)*1000)} мс. Лёгкое сжатие до 96,5% и обратно.`
+        : `Сегменты по очереди теряют обводку 22 → 0 pt (по ${Math.round(P.seg*1000)} мс, шаг ${Math.round(P.stagger*1000)} мс). Лёгкое сжатие до 96,5% и обратно.`,
+      wobble:`Плавно опускается и поднимается на ±${String(P.amp).replace('.',',')} pt, период 3 с; сегменты дышат вдоль прорезей.`,
+      asm: variant==='diag'
+        ? 'Прорези закрываются такой же волной из правого верхнего угла в левый нижний.'
+        : 'Обводка возвращается 0 → 22 pt в обратном порядке, прорези закрываются.',
+      hold:'Пауза на круге перед новым циклом.'
+    };
+    const ease={circle:'—',reveal:'ease-out cubic',wobble:'sine',asm:'ease-in-out cubic',hold:'—'};
+    const exitRow = variant==='fill'
+      ? `<tr><td><span class="dot" style="background:#fff;box-shadow:0 0 0 1px var(--line)"></span>Конец загрузки</td><td class="mono">${Math.round(COLLAPSE*1000)} + ${Math.round(EXPAND*1000)} мс</td><td>Если логотип раскрыт, он за ${Math.round(COLLAPSE*1000)} мс собирается в круг из текущего положения. Затем круг за ${Math.round(EXPAND*1000)} мс увеличивается в ${String(FILL_SCALE).replace('.',',')} раза и заливает весь экран белым.</td><td class="mono">ease-in-out cubic</td></tr>`
+      : `<tr><td><span class="dot" style="background:var(--line)"></span>Конец загрузки</td><td class="mono">200 мс</td><td>Лоадер исчезает из любой фазы: прозрачность 1 → 0, масштаб 1 → 0,85.</td><td class="mono">ease</td></tr>`;
+    $('spec').innerHTML=ph.map(p=>`<tr><td><span class="dot" style="background:${col[p.k]}"></span>${p.name}</td><td class="mono">${fmt(p.s)}–${fmt(p.e)} с</td><td>${what[p.k]}</td><td class="mono">${ease[p.k]}</td></tr>`).join('')+exitRow;
+  }
+  bind('pSeg','oSeg','seg',v=>Math.round(v*1000)+' мс');
+  bind('pWob','oWob','wob',v=>fmt(v)+' с');
+  bind('pAmp','oAmp','amp',v=>'±'+String(v).replace('.',',')+' pt');
+
+  setPlaying(true);
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>

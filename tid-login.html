@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Вход с T-ID</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&display=swap">
+<style>
+  /* Layout: a quiet stage with two phones (Light / Dark) side by side; the phones carry their own fixed palettes from the Figma screens. */
+  :root {
+    --bg: #eef1f5;
+    --fg: #0a0a0f;
+    --muted: #5d6471;
+    --panel: #ffffff;
+    --line: rgba(10, 10, 15, 0.10);
+    --accent: #0365e3;
+    --font: "Onest", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --speed: 2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1116; --fg: #f2f4f7; --muted: #9aa3b1; --panel: #171a21; --line: rgba(255,255,255,0.10); --accent: #5ea2ff; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1116; --fg: #f2f4f7; --muted: #9aa3b1; --panel: #171a21; --line: rgba(255,255,255,0.10); --accent: #5ea2ff; color-scheme: dark;
+  }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 24px 40px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .device {
+    position: relative; width: 375px; height: 812px; border-radius: 44px; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(2, 27, 74, 0.25), 0 0 0 1px var(--line);
+    transform-origin: top left;
+  }
+
+  /* ---- screen (values from the Figma frames) ---- */
+  .screen { position: absolute; inset: 0; font-family: var(--font); }
+  .screen.light { --layer: #ffffff; --t1: #0a0a0f; --t2: #464a52; --t3: #5e636c; --tert: rgba(0,0,0,0.06); --tid-bg: #333333; --tid-fg: #ffffff;
+    --g-top: #0a3a9c; --g-mid: #0365e3; --g-bot: #2f8cff; --b1: #ffffff; --b2: #05102a; --b3: #ffffff; }
+  .screen.dark  { --layer: #1c1d22; --t1: #ffffff; --t2: #cbd0d7; --t3: #a5abb4; --tert: rgba(255,255,255,0.08); --tid-bg: #ffffff; --tid-fg: #333333;
+    --g-top: #2f8cff; --g-mid: #0a56c9; --g-bot: #0a2a6e; --b1: #ffffff; --b2: #04091c; --b3: #ffffff; }
+  .screen { background: var(--layer); }
+
+  .visual {
+    position: absolute; left: 0; top: 0; width: 375px; height: 560px; overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+  }
+  .base { position: absolute; inset: 0; background: linear-gradient(165deg, var(--g-top) 0%, var(--g-mid) 48%, var(--g-bot) 100%); }
+  .blob { position: absolute; border-radius: 50%; filter: blur(42px); will-change: transform; }
+  .blob.one   { width: 380px; height: 380px; left: 140px; top: -200px; background: radial-gradient(circle at 50% 50%, var(--b1) 0%, color-mix(in srgb, var(--b1) 40%, transparent) 35%, transparent 68%); opacity: 0.7; animation: drift1 calc(14s / var(--speed)) ease-in-out infinite; }
+  .blob.two   { width: 440px; height: 440px; left: -220px; top: 100px; background: radial-gradient(circle at 50% 50%, var(--b2) 0%, color-mix(in srgb, var(--b2) 45%, transparent) 38%, transparent 70%); opacity: 0.6; animation: drift2 calc(18s / var(--speed)) ease-in-out infinite; }
+  .blob.three { width: 300px; height: 300px; left: 60px; top: 300px; background: radial-gradient(circle at 50% 50%, var(--b3) 0%, color-mix(in srgb, var(--b3) 35%, transparent) 35%, transparent 68%); opacity: 0.55; animation: drift3 calc(22s / var(--speed)) ease-in-out infinite; }
+  .sheen {
+    position: absolute; left: -50%; top: -50%; width: 200%; height: 200%;
+    background: conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,0) 0deg, rgba(255,255,255,0.10) 60deg, rgba(255,255,255,0) 120deg, rgba(255,255,255,0.06) 240deg, rgba(255,255,255,0) 360deg);
+    mix-blend-mode: soft-light; animation: spin calc(40s / var(--speed)) linear infinite; will-change: transform;
+  }
+  @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-140px, 160px) scale(1.25); } }
+  @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(220px, -60px) scale(1.15); } }
+  @keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-120px, -180px) scale(0.9); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .paused .blob, .paused .sheen { animation-play-state: paused; }
+  @media (prefers-reduced-motion: reduce) { .blob, .sheen { animation-duration: 90s; } }
+
+  .logo { position: absolute; left: 124px; top: 216px; width: 128px; height: 128px; animation: float 4.5s ease-in-out infinite; will-change: transform; }
+  .logo svg { display: block; width: 128px; height: 128px; filter: drop-shadow(0 18px 24px rgba(2, 27, 74, 0.28)); }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .paused .logo { animation-play-state: paused; }
+  @media (prefers-reduced-motion: reduce) { .logo { animation: none; } }
+
+  .text { position: absolute; left: 16px; top: 548px; width: 343px; display: flex; flex-direction: column; gap: 4px; }
+  .title { margin: 0; font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; color: var(--t1); }
+  .desc { margin: 0; font-size: 16px; line-height: 20px; font-weight: 400; color: var(--t2); }
+
+  .actions { position: absolute; left: 16px; top: 640px; width: 343px; display: flex; flex-direction: column; gap: 8px; }
+  .action {
+    height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 18px; line-height: 24px; font-weight: 500; cursor: default; user-select: none;
+  }
+  .action.email { background: var(--tert); color: var(--t1); }
+  .action.tid { background: var(--tid-bg); color: var(--tid-fg); }
+  .action.tid svg { display: block; width: 37px; height: 20px; }
+  .disclaimer { position: absolute; left: 16px; top: 772px; width: 343px; margin: 0; text-align: left; font-size: 10px; line-height: 12px; color: var(--t3); }
+  .disclaimer u { color: var(--t1); text-decoration: underline; }
+
+
+  body { display: flex; flex-direction: column; align-items: center; gap: 20px; padding-block: 20px 40px; }
+  .switch { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .switch button { appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 999px; cursor: pointer; }
+  .switch button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .scaler { width: 375px; max-width: 100%; }
+</style>
+</head>
+<body>
+<div class="switch" role="group" aria-label="Тема">
+  <button type="button" data-theme="light" aria-pressed="true">Light</button>
+  <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+</div>
+<div class="scaler"><div class="device">
+    <div class="screen light" id="screen">
+      <div class="visual"><div class="base"></div><div class="blob three"></div><div class="blob two"></div><div class="blob one"></div><div class="sheen"></div></div>
+      <div class="logo"><svg viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Плати по миру"><path d="M110.832 107.608C100.891 115.105 81.0257 122.131 71.2534 125.322C64.7704 127.418 64.7168 127.442 63.9971 127.955C64.0614 127.955 64.1648 128 64.256 128C65.2765 127.977 66.631 127.931 67.6516 127.91C70.031 127.776 72.3612 127.53 74.6583 127.15C78.0568 126.594 81.3641 125.791 84.5578 124.743C87.7438 123.671 90.8107 122.376 93.7631 120.883C96.711 119.345 99.5357 117.603 102.17 115.664C104.501 113.834 107.492 111.267 109.658 109.283C110.801 108.121 111.887 106.985 112.943 105.758L110.832 107.608Z" fill="#fff"/><path d="M0 69.1924C0.840608 54.0237 18.093 43.4956 56.4333 25.6682C70.0752 19.312 78.275 14.2672 84.6439 9.61206C92.7238 3.70564 115.362 15.8663 114.541 36.4325C114.334 41.6335 112.54 48.2687 62.7101 72.9403C30.8275 88.7349 19.5836 97.6353 19.7309 107.027C19.7406 107.631 19.6285 108.456 19.45 108.991C19.2028 109.727 18.4534 108.946 16.7146 107.318C7.28852 97.123 1.15462 83.8726 0 69.1924Z" fill="#fff"/><path d="M30.1798 9.5345C46.0963 3.70153e-06 61.3335 0.043665 63.9938 0C66.5376 0.156224 78.9102 1.44337 72.6437 6.48522C69.3266 9.13908 62.8572 11.9962 53.0684 16.3457C24.9226 28.8596 4.68758 38.7202 0.944336 52.0162C4.36284 34.1916 14.8739 18.9521 29.8512 9.73778" fill="#fff"/><path d="M43.1693 124.292C20.8942 115.971 26.8696 106.066 65.2547 87.7513C91.6783 75.1462 106.195 67.1604 117.316 55.8958C127.964 46.5927 128.468 64.082 127.807 70.9529C125.318 96.6061 116.327 102.586 75.5907 119.074C63.7291 123.868 61.531 124.895 60.1526 126.523C59.8825 126.814 59.9502 127.236 60.2179 127.326C61.1492 127.75 61.4886 127.906 63.9875 127.996C60.1321 127.884 52.0922 127.638 43.1693 124.292Z" fill="#fff"/></svg></div>
+      <div class="text"><h2 class="title">Плати по всему миру</h2><p class="desc">Войдите или зарегистрируйтесь — это займёт пару минут, если аккаунта ещё нет</p></div>
+      <div class="actions">
+        <div class="action email">Войти по e-mail</div>
+        <div class="action tid">Войти с T‑ID <svg viewBox="0 0 37 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9.99805 0.5H27.002C32.2474 0.500092 36.5 4.75327 36.5 10C36.5 15.2467 32.2474 19.4999 27.002 19.5H9.99805C4.75249 19.4999 0.5 15.2467 0.5 10C0.5 4.75327 4.75249 0.500092 9.99805 0.5Z" fill="#303030" stroke="white"/><path d="M5.80029 5.14136H16.5715V10.5593C16.5715 11.9484 15.8299 13.2322 14.6281 13.9267L11.1859 15.9144L7.74369 13.9267C6.54026 13.2322 5.80029 11.9484 5.80029 10.5593V5.14136Z" fill="#FFDD2D"/><path fill-rule="evenodd" clip-rule="evenodd" d="M8.75548 7.99341V9.67788C8.98642 9.41704 9.40432 9.24105 9.8835 9.24105H10.4035V11.2005C10.4035 11.7222 10.2621 12.1779 10.0516 12.4293H12.3155C12.1065 12.1779 11.9652 11.7222 11.9652 11.2021V9.24262H12.4852C12.9643 9.24262 13.3838 9.41861 13.6132 9.67946V7.99498H8.75391L8.75548 7.99341Z" fill="#333333"/><path d="M22.7207 13.3973V7.03027H20.7129V13.3973H22.7207Z" fill="white"/><path d="M27.5596 13.3973C30.1 13.3973 31.3569 12.046 31.3569 10.2138C31.3569 8.38162 30.0984 7.03027 27.7733 7.03027H24.1897V13.3973H27.5612H27.5596ZM27.357 8.55447C28.7348 8.55447 29.3098 9.17044 29.3098 10.2138C29.3098 11.177 28.7363 11.9124 27.357 11.9124H26.1268V8.55447H27.357Z" fill="white"/></svg></div>
+      </div>
+      <p class="disclaimer">Авторизовываясь через сторонний сервис, я соглашаюсь с <u>Условиями использования</u> и <u>Политикой конфиденциальности</u></p>
+    </div>
+</div></div>
+<script>
+  (function () {
+    var screen = document.getElementById('screen');
+    var btns = Array.prototype.slice.call(document.querySelectorAll('.switch button'));
+    function setTheme(t) {
+      screen.className = 'screen ' + t;
+      document.documentElement.setAttribute('data-theme', t);
+      btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-theme') === t)); });
+    }
+    btns.forEach(function (b) { b.addEventListener('click', function () { setTheme(b.getAttribute('data-theme')); }); });
+    function fit() {
+      var s = Math.min(1, Math.min(document.body.clientWidth - 32, 375) / 375);
+      var sc = document.querySelector('.scaler'), d = sc.firstElementChild;
+      d.style.transform = 'scale(' + s + ')';
+      sc.style.height = Math.round(812 * s) + 'px';
+      sc.style.width = Math.round(375 * s) + 'px';
+    }
+    window.addEventListener('resize', fit);
+    fit();
+    setTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  })();
+</script>
+</body>
+</html>

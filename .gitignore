@@ -1,0 +1,8 @@
+.DS_Store
+**/.DS_Store
+work/
+_site/
+__pycache__/
+.env
+.env.*
+!.env.example
