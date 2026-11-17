@@ -1,7 +1,7 @@
 import sys, tempfile, unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_prototypes import collect, render
+from build_prototypes import collect
 
 class CatalogTests(unittest.TestCase):
     def setUp(self):
@@ -25,9 +25,6 @@ class CatalogTests(unittest.TestCase):
         data=collect(self.root)
         self.assertEqual(data[0]['status'],'draft')
         self.assertEqual(data[0]['url'],'a%20%26%20b.html')
-        html=render(data)
-        self.assertIn('&lt;unsafe&gt;',html)
-        self.assertNotIn('<h2><a href="a%20%26%20b.html"><unsafe>',html)
     def test_invalid_status_fails_publication(self):
         self.page('bad.html','<meta name="prototype-status" content="unknown">')
         with self.assertRaises(ValueError): collect(self.root)

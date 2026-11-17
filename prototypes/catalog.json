@@ -2,12 +2,78 @@
   "schema_version": 1,
   "items": [
     {
+      "path": "auto-topups.html",
+      "url": "auto-topups.html",
+      "title": "Автопополнения — кликабельный прототип",
+      "description": "",
+      "status": "draft",
+      "kind": "prototype",
+      "task": "",
+      "figma": "",
+      "approval": ""
+    },
+    {
+      "path": "csi.html",
+      "url": "csi.html",
+      "title": "Сбор CSI и NPS — анимации капибары, 17 ноября",
+      "description": "",
+      "status": "draft",
+      "kind": "prototype",
+      "task": "",
+      "figma": "",
+      "approval": ""
+    },
+    {
       "path": "example/index.html",
       "url": "example/index.html",
       "title": "Проверка публикации HTML",
       "description": "Технический пример: HTML, CSS и JavaScript открываются по прямой ссылке. Можно использовать как основу нового прототипа.",
       "status": "draft",
       "kind": "example",
+      "task": "",
+      "figma": "",
+      "approval": ""
+    },
+    {
+      "path": "instructions.html",
+      "url": "instructions.html",
+      "title": "Инструкции — три варианта главной и Apple Pay",
+      "description": "",
+      "status": "draft",
+      "kind": "prototype",
+      "task": "",
+      "figma": "",
+      "approval": ""
+    },
+    {
+      "path": "ppt-606-history.html",
+      "url": "ppt-606-history.html",
+      "title": "PPT-606 — история операций · ListRow и DetailCard",
+      "description": "",
+      "status": "draft",
+      "kind": "prototype",
+      "task": "",
+      "figma": "",
+      "approval": ""
+    },
+    {
+      "path": "success-animation.html",
+      "url": "success-animation.html",
+      "title": "Пополнение — анимация успеха",
+      "description": "",
+      "status": "draft",
+      "kind": "prototype",
+      "task": "",
+      "figma": "",
+      "approval": ""
+    },
+    {
+      "path": "success-decoder.html",
+      "url": "success-decoder.html",
+      "title": "Пополнение — анимация успеха с декодером",
+      "description": "",
+      "status": "draft",
+      "kind": "prototype",
       "task": "",
       "figma": "",
       "approval": ""
