@@ -68,8 +68,9 @@ def render(records):
         e = lambda key: escape(record[key], quote=True)
         links = ''.join(f'<a href="{e(field)}">{label} ↗</a>' for field,label in [('task','Задача'),('figma','Figma'),('approval','Согласование')] if record[field])
         label = 'Технический пример' if record['kind'] == 'example' else STATUSES[record['status']]
-        cards.append(f'<article class="card" data-status="{e("status")}" data-kind="{e("kind")}"><span class="badge">{label}</span><h2><a href="{e("url")}">{e("title")}</a></h2><p>{e("description")}</p><code>{e("path")}</code><div class="links"><a class="launch" href="{e("url")}">Открыть прототип ↗</a>{links}</div></article>')
-    options=''.join(f'<option value="{key}">{label}</option>' for key,label in STATUSES.items())
+        badge = '' if record['status'] == 'draft' else f'<span class="badge">{label}</span>'
+        cards.append(f'<article class="card" data-status="{e("status")}" data-kind="{e("kind")}">{badge}<h2><a href="{e("url")}">{e("title")}</a></h2><p>{e("description")}</p><code>{e("path")}</code><div class="links"><a class="launch" href="{e("url")}">Открыть прототип ↗</a>{links}</div></article>')
+    options=''.join(f'<option value="{key}">{label}</option>' for key,label in STATUSES.items() if key != 'draft')
     count=sum(x['kind']=='prototype' for x in records)
     template=(ROOT/'scripts/prototypes-catalog.html').read_text(encoding='utf-8')
     return template.replace('@@CARDS@@','\n'.join(cards)).replace('@@OPTIONS@@',options).replace('@@COUNT@@',str(count)).replace('@@SOURCE@@',SOURCE)
