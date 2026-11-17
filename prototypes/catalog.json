@@ -35,6 +35,28 @@
       "approval": ""
     },
     {
+      "path": "ppt-595-complete.html",
+      "url": "ppt-595-complete.html",
+      "title": "PPT-595 — Прототип и ченджлог · один файл",
+      "description": "",
+      "status": "draft",
+      "kind": "prototype",
+      "task": "",
+      "figma": "",
+      "approval": ""
+    },
+    {
+      "path": "ppt-596-first-topup.html",
+      "url": "ppt-596-first-topup.html",
+      "title": "PPT-596 — Первое пополнение · два сценария",
+      "description": "",
+      "status": "draft",
+      "kind": "prototype",
+      "task": "",
+      "figma": "",
+      "approval": ""
+    },
+    {
       "path": "ppt-606-history.html",
       "url": "ppt-606-history.html",
       "title": "PPT-606 — история операций · ListRow и DetailCard",
