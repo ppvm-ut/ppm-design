@@ -1,10 +1,12 @@
 """Build the prototypes directory and machine-readable catalog from HTML metadata."""
+from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 import json
 
 ROOT = Path(__file__).resolve().parents[1]
+SOURCE = 'https://github.com/ppvm-ut/ppm-design/tree/main/prototypes'
 STATUSES = {'draft': 'Черновик', 'review': 'На проверке', 'approved': 'Согласован', 'archived': 'Архив'}
 
 class Metadata(HTMLParser):
@@ -37,6 +39,8 @@ def collect(root=ROOT):
         parser = Metadata()
         parser.feed(path.read_text(encoding='utf-8'))
         meta = parser.meta
+        if meta.get('prototype-kind') == 'example':
+            continue
         status = meta.get('prototype-status', 'draft')
         if status not in STATUSES:
             raise ValueError(f'{rel}: unknown prototype-status {status!r}')
@@ -58,8 +62,22 @@ def collect(root=ROOT):
     return records
 
 
+def render(records):
+    cards=[]
+    for record in records:
+        e = lambda key: escape(record[key], quote=True)
+        links = ''.join(f'<a href="{e(field)}">{label} ↗</a>' for field,label in [('task','Задача'),('figma','Figma'),('approval','Согласование')] if record[field])
+        label = 'Технический пример' if record['kind'] == 'example' else STATUSES[record['status']]
+        cards.append(f'<article class="card" data-status="{e("status")}" data-kind="{e("kind")}"><span class="badge">{label}</span><h2><a href="{e("url")}">{e("title")}</a></h2><p>{e("description")}</p><code>{e("path")}</code><div class="links"><a class="launch" href="{e("url")}">Открыть прототип ↗</a>{links}</div></article>')
+    options=''.join(f'<option value="{key}">{label}</option>' for key,label in STATUSES.items())
+    count=sum(x['kind']=='prototype' for x in records)
+    template=(ROOT/'scripts/prototypes-catalog.html').read_text(encoding='utf-8')
+    return template.replace('@@CARDS@@','\n'.join(cards)).replace('@@OPTIONS@@',options).replace('@@COUNT@@',str(count)).replace('@@SOURCE@@',SOURCE)
+
+
 def build(root=ROOT):
     records=collect(root)
+    (root/'prototypes/index.html').write_text(render(records),encoding='utf-8')
     (root/'prototypes/catalog.json').write_text(json.dumps({'schema_version':1,'items':records},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     return records
 

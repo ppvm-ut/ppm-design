@@ -111,7 +111,7 @@ search.addEventListener('input',filter);category.addEventListener('change',filte
 def main():
     build_prototypes()
     files = list(source_files())
-    prototypes = [p for p in files if p.suffix.lower() in {'.html', '.htm'} and p not in {ROOT / 'index.html', ROOT / 'prototypes/index.html'}]
+    prototypes = [p for p in files if p.suffix.lower() in {'.html', '.htm'} and p not in {ROOT / 'index.html', ROOT / 'prototypes/index.html', ROOT / 'prototypes/example/index.html'}]
     items = [details(path) for path in prototypes]
     if not items:
         raise SystemExit('No prototypes found; refusing to publish an empty catalog.')

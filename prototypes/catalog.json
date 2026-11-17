@@ -24,17 +24,6 @@
       "approval": ""
     },
     {
-      "path": "example/index.html",
-      "url": "example/index.html",
-      "title": "Проверка публикации HTML",
-      "description": "Технический пример: HTML, CSS и JavaScript открываются по прямой ссылке. Можно использовать как основу нового прототипа.",
-      "status": "draft",
-      "kind": "example",
-      "task": "",
-      "figma": "",
-      "approval": ""
-    },
-    {
       "path": "instructions.html",
       "url": "instructions.html",
       "title": "Инструкции — три варианта главной и Apple Pay",

@@ -1,7 +1,7 @@
 import sys, tempfile, unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_prototypes import collect
+from build_prototypes import collect, build
 
 class CatalogTests(unittest.TestCase):
     def setUp(self):
@@ -13,6 +13,16 @@ class CatalogTests(unittest.TestCase):
         p=self.root/'prototypes'/name
         p.parent.mkdir(parents=True,exist_ok=True)
         p.write_text(text)
+    def test_catalog_entry_point_exists_without_service_page_cards(self):
+        self.page('example/index.html', '<title>Example</title><meta name="prototype-kind" content="example">')
+        self.page('flow.html', '<title>Flow</title>')
+        records = build(self.root)
+        html = (self.root / 'prototypes/index.html').read_text()
+        self.assertEqual([record['path'] for record in records], ['flow.html'])
+        self.assertIn('href="flow.html"', html)
+        self.assertNotIn('href="example/index.html"', html)
+        self.assertEqual(collect(self.root), records)
+
     def test_new_nested_html_is_discovered_and_catalog_excluded(self):
         self.page('index.html','<title>Catalog</title>')
         self.page('new-flow/index.html','<title>New flow</title><meta name="prototype-status" content="review">')
