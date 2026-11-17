@@ -20,6 +20,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
+      - name: Test prototype catalog
+        run: python -m unittest discover -s scripts -p 'test_*.py'
       - name: Build catalog and collect prototypes
         run: python scripts/build_pages.py
       - name: Configure Pages

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "items": [
+    {
+      "path": "example/index.html",
+      "url": "example/index.html",
+      "title": "Проверка публикации HTML",
+      "description": "Технический пример: HTML, CSS и JavaScript открываются по прямой ссылке. Можно использовать как основу нового прототипа.",
+      "status": "draft",
+      "kind": "example",
+      "task": "",
+      "figma": "",
+      "approval": ""
+    }
+  ]
+}
